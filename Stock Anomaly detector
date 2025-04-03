@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.ensemble import IsolationForest
+import yfinance as yp
+import datetime
+def validate_date(date_str):
+    try:
+        datetime.datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+def stockinfo(target,start,end):
+    data = yp.download(target, start=start, end=end)
+    data=data[['Close']]
+    return data
+def graph(data,target):
+    plt.figure(figsize=(18, 9))
+    plt.plot(data['Close'], label=f'{target} Stock Price', color='blue')
+    anomalies = data[data['Anomaly'] == 1]
+    plt.scatter(anomalies.index, anomalies['Close'], color='red', label='Anomalies', marker='o')
+    plt.title(f'Anomaly Detection in {target} Stock Prices')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.show()
+def detect_anomalies(data):
+    data=data.dropna()
+    model = IsolationForest(contamination=0.01, random_state=42)
+    data['Anomaly'] = model.fit_predict(data[['Close']])
+    data['Anomaly'] = data['Anomaly'].apply(lambda x: 1 if x == -1 else 0)
+    return data
+def main():
+    target = input("Enter the stock symbol:")
+        
+    while True:
+        start = input("Enter the start date (YYYY-MM-DD): ")
+        if validate_date(start):
+            break
+        print("Invalid format! Please enter again.")
+
+    while True:
+        end = input("Enter the end date (YYYY-MM-DD): ")
+        if validate_date(end):
+            break
+        print("Invalid format! Please enter again.")
+    data = stockinfo(target, start, end)
+    data = detect_anomalies(data)
+    graph(data,target)
+    print("Anomalies Detected:")
+    print(data[data['Anomaly'] == 1])
+
+if __name__ == '__main__':
+    main()
